@@ -74,6 +74,15 @@ pub async fn my_func(
 }
 ```
 
+## 安装
+
+将此添加到您的 `Cargo.toml` 文件中：
+
+```toml
+[dependencies]
+just_template = "0.1"
+```
+
 ## 许可证
 
 本项目采用 MIT 和 Apache 2.0 双重许可。

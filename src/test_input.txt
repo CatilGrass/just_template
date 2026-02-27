@@ -1,0 +1,16 @@
+// Auto generated
+use std::collections::HashMap;
+
+pub async fn <<<func_name>>>(
+    name: &str,
+    data: &[u8],
+    params: &HashMap<String, String>,
+) -> Option<Result<Vec<u32>, std::io::Error>> {
+    match name {
+>>>>>>>>>> arms
+@@@ >>> arms
+        "<<<crate_name>>>" => Some(<<<crate_name>>>::exec(data, params).await),
+@@@ <<<
+        _ => None,
+    }
+}

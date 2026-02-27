@@ -1,0 +1,14 @@
+// Auto generated
+use std::collections::HashMap;
+
+pub async fn my_func(
+    name: &str,
+    data: &[u8],
+    params: &HashMap<String, String>,
+) -> Option<Result<Vec<u32>, std::io::Error>> {
+    match name {
+        "my" => Some(my::exec(data, params).await),
+        "you" => Some(you::exec(data, params).await),
+        _ => None,
+    }
+}

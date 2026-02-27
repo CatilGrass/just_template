@@ -1,0 +1,13 @@
+[package]
+name = "just_template"
+authors = ["Weicao-CatilGrass"]
+description = "a tool for code gen via templates"
+version = "0.1.0"
+edition = "2024"
+
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/catilgrass/just_template"
+
+[dependencies]
+just_fmt = "0.1.2"

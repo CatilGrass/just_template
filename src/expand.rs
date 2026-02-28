@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::replace};
 
 use just_fmt::snake_case;
 
-use crate::Template;
+use crate::template::Template;
 
 const IMPL_AREA_BEGIN: &str = "@@@ >>> ";
 const IMPL_AREA_END: &str = "@@@ <<<";

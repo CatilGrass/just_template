@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-pub mod expand;
-pub mod test;
-
 #[derive(Default, Clone)]
 pub struct Template {
     pub(crate) template_str: String,
@@ -38,34 +35,4 @@ impl std::fmt::Display for Template {
         let cloned = self.clone();
         write!(f, "{}", cloned.expand().unwrap_or_default())
     }
-}
-
-#[macro_export]
-macro_rules! tmpl_param {
-    ($template:ident, $($key:ident = $value:expr),* $(,)?) => {{
-        $(
-            $template.insert_param(stringify!($key).to_string(), $value.to_string());
-        )*
-    }};
-}
-
-#[macro_export]
-macro_rules! tmpl {
-    ($template:ident += {
-        $($name:ident {
-            $(($($key:ident = $value:expr),* $(,)?)),*
-            $(,)?
-        }),*
-    }) => {{
-        $(
-            let $name = $template.add_impl(stringify!($name).to_string());
-            $(
-                $name.push({
-                    let mut params = std::collections::HashMap::new();
-                    $(params.insert(stringify!($key).to_string(), $value.to_string());)*
-                    params
-                });
-            )*
-        )*
-    }};
 }

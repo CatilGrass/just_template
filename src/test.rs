@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Template, tmpl, tmpl_param};
+    use crate::{template::Template, tmpl, tmpl_param};
 
     #[test]
     fn expand() {

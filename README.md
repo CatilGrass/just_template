@@ -46,8 +46,12 @@ pub async fn my_func(
 
 Run cmds:
 ```rust
-insert_impl!("arms", crate_name = "my")
-insert_impl!("arms", crate_name = "you")
+tmpl!(tmpl += {
+    arms {
+        (crate_name = "my"),
+        (crate_name = "you")
+    }
+});
 ```
 
 The `arms` impl_area becomes:

@@ -46,8 +46,12 @@ pub async fn my_func(
 
 执行添加实现的指令：
 ```rust
-insert_impl!("arms", crate_name = "my")
-insert_impl!("arms", crate_name = "you")
+tmpl!(tmpl += {
+    arms {
+        (crate_name = "my"),
+        (crate_name = "you")
+    }
+});
 ```
 
 系统会为 `arms` 实现块生成两个具体实现，此时实现块内容变为：

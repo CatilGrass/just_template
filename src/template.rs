@@ -30,6 +30,24 @@ impl From<String> for Template {
     }
 }
 
+impl<'a> From<&'a str> for Template {
+    fn from(s: &'a str) -> Self {
+        Template {
+            template_str: s.to_string(),
+            ..Default::default()
+        }
+    }
+}
+
+impl<'a> From<std::borrow::Cow<'a, str>> for Template {
+    fn from(s: std::borrow::Cow<'a, str>) -> Self {
+        Template {
+            template_str: s.into_owned(),
+            ..Default::default()
+        }
+    }
+}
+
 impl std::fmt::Display for Template {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let cloned = self.clone();

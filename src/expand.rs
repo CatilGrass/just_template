@@ -135,8 +135,10 @@ fn apply_impls(
                 continue;
             };
 
-            applied_content += "\n";
-            applied_content += impled_code.join("\n").as_str();
+            if impled_code.len() > 0 {
+                applied_content += "\n";
+                applied_content += impled_code.join("\n").as_str();
+            }
         } else {
             // Other content directly appended
             applied_content += "\n";

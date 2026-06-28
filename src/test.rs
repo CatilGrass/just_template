@@ -15,12 +15,12 @@ mod tests {
 
         let mut tmpl = Template::from(input);
         tmpl_param!(tmpl, func_name = "my_func");
-        tmpl!(tmpl += {
+        tmpl!(tmpl,
             arms {
-                (crate_name = "my"),
-                (crate_name = "you")
+                crate_name = "my",
+                crate_name = "you",
             }
-        });
+        );
 
         let expanded = tmpl.expand().unwrap();
         assert_eq!(expanded, expect);

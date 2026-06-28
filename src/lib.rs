@@ -33,12 +33,12 @@
 //!     <<<crate_name>>> => Some(<<<crate_name>>>::exec(data, params).await),
 //! @@@ <<<
 //! ".trim().to_string());
-//! tmpl!(tmpl += {
+//! tmpl!(tmpl,
 //!     arms {
-//!         (crate_name = "my"),
-//!         (crate_name = "you")
+//!         crate_name = "my",
+//!         crate_name = "you",
 //!     }
-//! });
+//! );
 //! // Output the expanded template
 //! let expanded = tmpl.to_string();
 //! assert_eq!(expanded, "
@@ -63,6 +63,22 @@ macro_rules! tmpl_param {
 
 #[macro_export]
 macro_rules! tmpl {
+    ($template:ident, $($name:ident {
+        $($key:ident = $value:expr),* $(,)?
+    }),* $(,)?) => {{
+        $(
+            let $name = $template.add_impl(stringify!($name).to_string());
+            $(
+                $name.push({
+                    let mut params = std::collections::HashMap::new();
+                    params.insert(stringify!($key).to_string(), $value.to_string());
+                    params
+                });
+            )*
+        )*
+    }};
+
+    // Old syntax
     ($template:ident += {
         $($name:ident {
             $(($($key:ident = $value:expr),* $(,)?)),*

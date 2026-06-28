@@ -1,9 +1,5 @@
 //! A template engine for code generation.
 //!
-//! `just_template` provides a template system with three layers of substitution,
-//! designed for generating repetitive source code while keeping the template
-//! readable.
-//!
 //! # Template syntax
 //!
 //! ## Simple parameters — `<<<key>>>`

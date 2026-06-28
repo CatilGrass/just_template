@@ -1,81 +1,153 @@
 # just_template
 
-> a tool for code gen via templates
+> A template engine for code generation.
 
-## Template File Writing Rules
+## Template syntax
 
-`just_template` gens repetitive code using three core concepts: `impl_mark`, `impl_area`, and `param`.
+### Simple parameters — `<<<key>>>`
 
-1. impl_mark
-   Mark an "impl point" with a line starting with 10 `>` chars: `>>>>>>>>>> NAME`.
-   Used for positioning. The system extracts the matching `impl_area` content and expands it here.
+The most basic substitution. Replaced with the value set via
+[`Template::insert_param`] or the [`tmpl!`] macro.
 
-2. impl_area
-   Declare a reusable code template:
-   `@@@ NAME >>>`
-   [template content]
-   `@@@ <<<`
-   Inside, use param placeholders like `<<<PARAM>>>`.
-   When adding an impl via cmd (e.g., `insert_impl!`), the system copies the area, replaces params, and appends to the impl_mark.
-
-3. param
-   - Params outside an impl_area are replaced globally.
-   - Params inside are replaced per-impl when generating.
-
-Example:
-
-Template:
 ```rust
-// Auto generated
-use std::collections::HashMap;
+# use just_template::Template;
+let mut t = Template::from("Hello, <<<name>>>!".to_string());
+t.insert_param("name".to_string(), "World".to_string());
+assert_eq!(t.expand().unwrap(), "Hello, World!");
+```
 
-pub async fn my_func(
-    name: &str,
-    data: &[u8],
-    params: &HashMap<String, String>,
-) -> Option<Result<Vec<u32>, std::io::Error>> {
-    match name {
+### Implementation blocks
+
+**Syntax:** `>>>>>>>>>> name` / `@@@ >>> name ... @@@ <<<`
+
+Template sections that can be instantiated multiple times with different
+parameter sets. Each instantiation is called an "arm".
+
+```rust
+# use just_template::Template;
+let mut t = Template::from(r#"
+>>>>>>>>>> match_arms
+@@@ >>> match_arms
+    <<<value>>> => println!("<<<value>>>"),
+@@@ <<<
+"#.trim().to_string());
+
+let arms = t.add_impl("match_arms".to_string());
+arms.push(std::collections::HashMap::from([
+    ("value".to_string(), "a".to_string()),
+]));
+arms.push(std::collections::HashMap::from([
+    ("value".to_string(), "b".to_string()),
+]));
+
+let out = t.expand().unwrap();
+assert!(out.contains(r#"a => println!("a")"#));
+assert!(out.contains(r#"b => println!("b")"#));
+```
+
+### Display blocks
+
+**Syntax:** `??? >>> name` / `??? <<<`
+
+Conditionally included sections. Hidden by default; shown when a parameter
+with the same name exists in the parameter map.
+
+```rust
+# use just_template::Template;
+// Without enabling, the block is omitted
+let t = Template::from(r#"
+visible
+??? >>> debug
+    hidden by default
+??? <<<
+"#.trim().to_string());
+assert_eq!(t.expand().unwrap(), "visible");
+
+// Enable by inserting a param with the block name
+let mut t = Template::from(r#"
+visible
+??? >>> debug
+    hidden by default
+??? <<<
+"#.trim().to_string());
+t.insert_param("debug".to_string(), "".to_string());
+let out = t.expand().unwrap();
+assert!(out.contains("hidden by default"));
+```
+
+Display blocks also work inside implementation blocks, and can be controlled
+per arm by including the block name in that arm's parameter map:
+
+```rust
+# use just_template::Template;
+let mut t = Template::from(r#"
 >>>>>>>>>> arms
 @@@ >>> arms
-        "<<<crate_name>>>" => Some(<<<crate_name>>>::exec(data, params).await),
+    <<<name>>>
+??? >>> extra
+    <<<name>>>.extra()
+??? <<<
 @@@ <<<
-        _ => None,
-    }
-}
+"#.trim().to_string());
+
+let arms = t.add_impl("arms".to_string());
+// Arm 1: no "extra" → display block hidden
+arms.push(std::collections::HashMap::from([
+    ("name".to_string(), "foo".to_string()),
+]));
+// Arm 2: has "extra" → display block shown for this arm only
+arms.push(std::collections::HashMap::from([
+    ("name".to_string(), "bar".to_string()),
+    ("extra".to_string(), "".to_string()),
+]));
+
+let out = t.expand().unwrap();
+assert!(out.contains("foo"));
+assert!(!out.contains("foo.extra()"));
+assert!(out.contains("bar"));
+assert!(out.contains("bar.extra()"));
 ```
 
-Run cmds:
+### The `tmpl!` macro
+
+The [`tmpl!`](macro.tmpl.html) proc macro provides a concise syntax for
+setting both simple parameters and implementation blocks.
+
 ```rust
-tmpl!(tmpl += {
+# use just_template::{Template, tmpl};
+let mut t = Template::from(r#"
+>>>>>>>>>> arms
+@@@ >>> arms
+    <<<crate_name>>> => Some(<<<crate_name>>>::exec(data, params).await),
+@@@ <<<
+"#.trim().to_string());
+
+# let param: i32 = 1; // dummy
+tmpl!(t,
+    func_name = "my_func",
     arms {
-        (crate_name = "my"),
-        (crate_name = "you")
+        crate_name = "my",
+        {
+            crate_name = "you",
+            extra = ""
+        }
     }
-});
+);
 ```
 
-The `arms` impl_area becomes:
-```rust
-        "my" => Some(my::exec(data, params).await),
-        "you" => Some(you::exec(data, params).await),
-```
+When the template variable is named `tmpl`, it can be omitted:
 
-Final expanded code:
 ```rust
-// Auto generated
-use std::collections::HashMap;
+# use just_template::{Template, tmpl};
+let mut tmpl = Template::from("<<<a>>> + <<<b>>> = <<<c>>>".to_string());
 
-pub async fn my_func(
-    name: &str,
-    data: &[u8],
-    params: &HashMap<String, String>,
-) -> Option<Result<Vec<u32>, std::io::Error>> {
-    match name {
-        "my" => Some(my::exec(data, params).await),
-        "you" => Some(you::exec(data, params).await),
-        _ => None,
-    }
-}
+tmpl! {
+    a = "1",
+    b = "2",
+    c = "3",
+};
+
+assert_eq!(tmpl.expand().unwrap(), "1 + 2 = 3");
 ```
 
 ## Installation
@@ -84,7 +156,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-just_template = "0.1"
+just_template = "0.2"
 ```
 
 ## License

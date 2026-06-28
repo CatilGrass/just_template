@@ -1,93 +1,160 @@
 # just_template
 
-> 只是通过模板生成代码的工具
+> 用于代码生成的模板引擎。
 
-## 模板文件编写规则
+## 模板语法
 
-`just_template` 用于生成重复性代码，包含三个核心概念：`实现标记`、`实现块` 和 `参数替换` 
+### 简单参数 — `<<<key>>>`
 
-1. 实现标记
-   用一行以 10 个连续 `>` 开头的行来标记一个“实现点”，格式为 `>>>>>>>>>> NAME`
-   该标记用于定位，系统将提取对应名称的“实现块”内容，并在此处进行重复展开。
+最基本的替换方式。通过 [`Template::insert_param`] 或 [`tmpl!`] 宏设置的值来替换。
 
-2. 实现块
-   用以下语法声明一个实现块，它可以定义一段可重复生成的代码模板：
-   `@@@ NAME >>>`
-   [模板内容]
-   `@@@ <<<`
-   在实现块内部，可以使用形如 `<<<PARAM>>>` 的参数占位符。
-   当通过指令（如 `insert_impl!`）为某个实现块添加具体实现时，系统会复制该块的内容，替换其中的参数，并将结果追加到对应的实现标记处
-
-3. 参数
-   - 写在实现块之外的参数会被直接进行全局替换
-   - 写在实现块之内的参数，会在为该块生成每个具体实现时，被替换为对应的值
-
-使用示例：
-
-原始模板文件内容：
 ```rust
-// Auto generated
-use std::collections::HashMap;
+# use just_template::Template;
+let mut t = Template::from("Hello, <<<name>>>!".to_string());
+t.insert_param("name".to_string(), "World".to_string());
+assert_eq!(t.expand().unwrap(), "Hello, World!");
+```
 
-pub async fn my_func(
-    name: &str,
-    data: &[u8],
-    params: &HashMap<String, String>,
-) -> Option<Result<Vec<u32>, std::io::Error>> {
-    match name {
+### 实现块
+
+**语法：** `>>>>>>>>>> name` / `@@@ >>> name ... @@@ <<<`
+
+可以使用不同参数集多次实例化的模板片段。每次实例化称为一个"分支"。
+
+```rust
+# use just_template::Template;
+let mut t = Template::from(r#"
+>>>>>>>>>> match_arms
+@@@ >>> match_arms
+    <<<value>>> => println!("<<<value>>>"),
+@@@ <<<
+"#.trim().to_string());
+
+let arms = t.add_impl("match_arms".to_string());
+arms.push(std::collections::HashMap::from([
+    ("value".to_string(), "a".to_string()),
+]));
+arms.push(std::collections::HashMap::from([
+    ("value".to_string(), "b".to_string()),
+]));
+
+let out = t.expand().unwrap();
+assert!(out.contains(r#"a => println!("a")"#));
+assert!(out.contains(r#"b => println!("b")"#));
+```
+
+### 显示块
+
+**语法：** `??? >>> name` / `??? <<<`
+
+条件包含的片段。默认隐藏；当参数映射中存在同名参数时显示。
+
+```rust
+# use just_template::Template;
+// 不启用时，块被省略
+let t = Template::from(r#"
+visible
+??? >>> debug
+    hidden by default
+??? <<<
+"#.trim().to_string());
+assert_eq!(t.expand().unwrap(), "visible");
+
+// 通过插入与块名同名的参数来启用
+let mut t = Template::from(r#"
+visible
+??? >>> debug
+    hidden by default
+??? <<<
+"#.trim().to_string());
+t.insert_param("debug".to_string(), "".to_string());
+let out = t.expand().unwrap();
+assert!(out.contains("hidden by default"));
+```
+
+显示块也可以在实现块内部工作，并且可以通过在分支的参数映射中包含块名来对每个分支进行控制：
+
+```rust
+# use just_template::Template;
+let mut t = Template::from(r#"
 >>>>>>>>>> arms
 @@@ >>> arms
-        "<<<crate_name>>>" => Some(<<<crate_name>>>::exec(data, params).await),
+    <<<name>>>
+??? >>> extra
+    <<<name>>>.extra()
+??? <<<
 @@@ <<<
-        _ => None,
-    }
-}
+"#.trim().to_string());
+
+let arms = t.add_impl("arms".to_string());
+// 分支 1：没有 "extra" → 显示块隐藏
+arms.push(std::collections::HashMap::from([
+    ("name".to_string(), "foo".to_string()),
+]));
+// 分支 2：有 "extra" → 仅此分支显示显示块
+arms.push(std::collections::HashMap::from([
+    ("name".to_string(), "bar".to_string()),
+    ("extra".to_string(), "".to_string()),
+]));
+
+let out = t.expand().unwrap();
+assert!(out.contains("foo"));
+assert!(!out.contains("foo.extra()"));
+assert!(out.contains("bar"));
+assert!(out.contains("bar.extra()"));
 ```
 
-执行添加实现的指令：
+### `tmpl!` 宏
+
+[`tmpl!`](macro.tmpl.html) 过程宏提供了一种简洁的语法，用于同时设置简单参数和实现块。
+
 ```rust
-tmpl!(tmpl += {
+# use just_template::{Template, tmpl};
+let mut t = Template::from(r#"
+>>>>>>>>>> arms
+@@@ >>> arms
+    <<<crate_name>>> => Some(<<<crate_name>>>::exec(data, params).await),
+@@@ <<<
+"#.trim().to_string());
+
+# let param: i32 = 1; // dummy
+tmpl!(t,
+    func_name = "my_func",
     arms {
-        (crate_name = "my"),
-        (crate_name = "you")
+        crate_name = "my",
+        {
+            crate_name = "you",
+            extra = ""
+        }
     }
-});
+);
 ```
 
-系统会为 `arms` 实现块生成两个具体实现，此时实现块内容变为：
-```rust
-        "my" => Some(my::exec(data, params).await),
-        "you" => Some(you::exec(data, params).await),
-```
+当模板变量名为 `tmpl` 时，可以省略它：
 
-最终，模板展开生成的代码如下：
 ```rust
-// Auto generated
-use std::collections::HashMap;
+# use just_template::{Template, tmpl};
+let mut tmpl = Template::from("<<<a>>> + <<<b>>> = <<<c>>>".to_string());
 
-pub async fn my_func(
-    name: &str,
-    data: &[u8],
-    params: &HashMap<String, String>,
-) -> Option<Result<Vec<u32>, std::io::Error>> {
-    match name {
-        "my" => Some(my::exec(data, params).await),
-        "you" => Some(you::exec(data, params).await),
-        _ => None,
-    }
-}
+tmpl! {
+    a = "1",
+    b = "2",
+    c = "3",
+};
+
+assert_eq!(tmpl.expand().unwrap(), "1 + 2 = 3");
 ```
 
 ## 安装
 
-将此添加到您的 `Cargo.toml` 文件中：
+将以下内容添加到您的 `Cargo.toml`：
 
 ```toml
 [dependencies]
-just_template = "0.1"
+just_template = "0.2"
 ```
 
 ## 许可证
 
-本项目采用 MIT 和 Apache 2.0 双重许可。
-详见 LICENSE 文件。
+本项目采用 MIT 和 Apache 2.0 双许可证。
+详情请参阅 LICENSE 文件。

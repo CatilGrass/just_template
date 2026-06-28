@@ -1,8 +1,11 @@
-use std::{collections::HashMap, mem::replace};
+use std::collections::HashMap;
 
 use just_fmt::snake_case;
 
 use crate::template::Template;
+
+const DISPLAY_BLOCK_BEGIN: &str = "??? >>> ";
+const DISPLAY_BLOCK_END: &str = "??? <<<";
 
 const IMPL_AREA_BEGIN: &str = "@@@ >>> ";
 const IMPL_AREA_END: &str = "@@@ <<<";
@@ -15,10 +18,11 @@ const PARAM_BEND: &str = ">>>";
 impl Template {
     pub fn expand(mut self) -> Option<String> {
         // Extract template text
-        let expanded = replace(&mut self.template_str, String::default());
+        let expanded = std::mem::take(&mut self.template_str);
 
         let (expanded, impl_areas) = read_impl_areas(expanded)?;
         let expanded = apply_impls(&self, expanded, impl_areas)?;
+        let expanded = apply_display_blocks(&self.params, expanded);
         let expanded = apply_param(&self, expanded)?;
         Some(expanded.trim().to_string())
     }
@@ -39,12 +43,12 @@ fn read_impl_areas(content: String) -> Option<(String, HashMap<String, String>)>
         if trimmed_line.starts_with(IMPL_AREA_END) {
             // If the current ImplArea name length is less than 1, it means no block is being matched,
             // so matching fails, exit early
-            if current_area_name.len() < 1 {
+            if current_area_name.is_empty() {
                 return None;
             }
 
             // Submit Impl Area
-            let name = replace(&mut current_area_name, String::default());
+            let name = std::mem::take(&mut current_area_name);
             impl_areas.insert(name, current_area_codes.join("\n"));
             current_area_codes.clear();
             continue;
@@ -54,7 +58,7 @@ fn read_impl_areas(content: String) -> Option<(String, HashMap<String, String>)>
         if trimmed_line.starts_with(IMPL_AREA_BEGIN) {
             // If the current ImplArea name length is greater than 0, it means we are already inside a block,
             // since nesting is not allowed, matching fails, exit early
-            if current_area_name.len() > 0 {
+            if !current_area_name.is_empty() {
                 return None;
             }
 
@@ -67,7 +71,7 @@ fn read_impl_areas(content: String) -> Option<(String, HashMap<String, String>)>
         }
 
         // During implementation block
-        if current_area_name.len() > 0 {
+        if !current_area_name.is_empty() {
             // Add to current block code
             current_area_codes.push(line.to_string());
             continue;
@@ -105,19 +109,26 @@ fn apply_impls(
         // Split items
         for item in impl_items {
             // Get base template
-            let mut template = impl_area_template.clone();
+            let mut applied = impl_area_template.clone();
+
+            // Merge global params with arm-specific params for display block check
+            let mut display_params = template.params.clone();
+            for (k, v) in item {
+                display_params.insert(k.clone(), v.clone());
+            }
+            applied = apply_display_blocks(&display_params, applied);
 
             // Extract parameters
             for (param_name, param_value) in item {
                 // Apply parameter
-                template = template.replace(
+                applied = applied.replace(
                     &format!("{}{}{}", PARAM_BEGIN, param_name, PARAM_BEND),
                     param_value,
                 );
             }
 
             // Add applied template
-            impled_area_code_applied.push(template);
+            impled_area_code_applied.push(applied);
         }
 
         impled_areas.insert(impl_area_name, impled_area_code_applied);
@@ -135,7 +146,7 @@ fn apply_impls(
                 continue;
             };
 
-            if impled_code.len() > 0 {
+            if !impled_code.is_empty() {
                 applied_content += "\n";
                 applied_content += impled_code.join("\n").as_str();
             }
@@ -147,6 +158,49 @@ fn apply_impls(
     }
 
     Some(applied_content)
+}
+
+/// Process display blocks (`??? >>> name` / `??? <<<`).
+///
+/// If `params` contains a key matching the block name, the block content is
+/// included (with markers removed). Otherwise the entire block is omitted.
+fn apply_display_blocks(params: &HashMap<String, String>, content: String) -> String {
+    let mut result = String::new();
+    let lines: Vec<&str> = content.split("\n").collect();
+    let mut i = 0;
+    let mut first = true;
+
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim();
+
+        if trimmed.starts_with(DISPLAY_BLOCK_BEGIN) {
+            let block_name = trimmed.trim_start_matches(DISPLAY_BLOCK_BEGIN).trim();
+            let show = params.contains_key(block_name);
+            i += 1;
+
+            while i < lines.len() && !lines[i].trim().starts_with(DISPLAY_BLOCK_END) {
+                if show {
+                    if !first {
+                        result += "\n";
+                    }
+                    result += lines[i];
+                    first = false;
+                }
+                i += 1;
+            }
+        } else if !trimmed.starts_with(DISPLAY_BLOCK_END) {
+            if !first {
+                result += "\n";
+            }
+            result += line;
+            first = false;
+        }
+
+        i += 1;
+    }
+
+    result
 }
 
 fn apply_param(template: &Template, content: String) -> Option<String> {

@@ -15,9 +15,7 @@ impl Template {
 
     /// Add an implementation block and return a HashMap to set its parameters
     pub fn add_impl(&mut self, impl_name: String) -> &mut Vec<HashMap<String, String>> {
-        self.impl_params
-            .entry(impl_name)
-            .or_insert_with(|| Vec::<HashMap<String, String>>::new())
+        self.impl_params.entry(impl_name).or_default()
     }
 }
 

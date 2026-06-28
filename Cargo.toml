@@ -1,13 +1,11 @@
-[package]
-name = "just_template"
-authors = ["Weicao-CatilGrass"]
-description = "a tool for code gen via templates"
+[workspace]
+members = [
+    "just_template",
+    "just_template_macros",
+]
+
+[workspace.package]
 version = "0.2.0"
+description = "A tool for code gen via templatese"
+authors = ["Weicao-CatilGrass <catil_grass@qq.com>"]
 edition = "2024"
-
-readme = "README.md"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/catilgrass/just_template"
-
-[dependencies]
-just_fmt = "0.1.2"

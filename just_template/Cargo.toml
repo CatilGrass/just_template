@@ -1,0 +1,13 @@
+[package]
+name = "just_template"
+version.workspace = true
+description.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/catilgrass/just_template"
+
+[dependencies]
+just_fmt = "0.1.2"

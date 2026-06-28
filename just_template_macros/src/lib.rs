@@ -3,8 +3,6 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::{Expr, Ident, Token, braced};
 
-// ── Parsing ─────────────────────────────────────────────────────────────────
-
 /// Top-level item inside `tmpl! { }` or after the template ident in `tmpl!(tmpl, ...)`
 enum TopItem {
     /// `key = value` — simple parameter
@@ -20,8 +18,6 @@ enum Arm {
     /// `{ key = value, key = value, ... }` — multi-param arm
     Multi(Vec<(Ident, Expr)>),
 }
-
-// ── Parse implementations ──────────────────────────────────────────────────
 
 impl Parse for TopItem {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -71,8 +67,6 @@ impl Arm {
     }
 }
 
-// ── Macro entry point ──────────────────────────────────────────────────────
-
 fn split_input(input: ParseStream) -> syn::Result<(Ident, Vec<TopItem>)> {
     // Try to parse: `ident , items` (explicit template variable)
     // If the first token is an ident followed by `,`, it's explicit.
@@ -88,12 +82,9 @@ fn split_input(input: ParseStream) -> syn::Result<(Ident, Vec<TopItem>)> {
         Ok((first, items))
     } else {
         // The first ident is actually the start of the first item.
-        // We need to re-parse. Use `syn::Result` to signal this.
-        // Tricky: we've already consumed `first`. Since syn::parse uses
-        // ParseStream which is a cursor, we actually can't rewind easily.
-        //
-        // Solution: use a custom approach — treat the first ident as
-        // the start of an item, and parse the rest as items.
+        // It must be re-parsed. Since `first` has already been consumed,
+        // the first item is parsed manually using `first` as the starting ident,
+        // and then any remaining items are parsed from the input stream.
         let items = {
             // Re-build: first ident + rest
             let mut items: Vec<TopItem> = Vec::new();
@@ -143,8 +134,6 @@ pub fn tmpl(input: TokenStream) -> TokenStream {
         Err(e) => e.to_compile_error().into(),
     }
 }
-
-// ── Code generation ────────────────────────────────────────────────────────
 
 fn generate(template_var: &Ident, items: &[TopItem]) -> Vec<proc_macro2::TokenStream> {
     let mut stmts: Vec<proc_macro2::TokenStream> = Vec::new();

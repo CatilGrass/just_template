@@ -56,8 +56,8 @@ fn read_impl_areas(content: String) -> Option<(String, HashMap<String, String>)>
 
         // Implementation block start
         if trimmed_line.starts_with(IMPL_AREA_BEGIN) {
-            // If the current ImplArea name length is greater than 0, it means we are already inside a block,
-            // since nesting is not allowed, matching fails, exit early
+            // If the current ImplArea name is not empty, a block is already active.
+            // Nesting is not allowed, so matching fails and exits early.
             if !current_area_name.is_empty() {
                 return None;
             }

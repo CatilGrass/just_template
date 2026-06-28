@@ -1,20 +1,27 @@
-use std::collections::HashMap;
-
-use crate::template::Template;
+use crate::Template;
+use crate::tmpl;
 
 #[test]
 fn basic_param() {
     let mut tmpl = Template::from("Hello, <<<name>>>!".to_string());
-    tmpl.insert_param("name".to_string(), "World".to_string());
+
+    tmpl!(tmpl, name = "World");
+    // tmpl.insert_param("name".to_string(), "World".to_string());
+
     assert_eq!(tmpl.expand().unwrap(), "Hello, World!");
 }
 
 #[test]
 fn multi_param() {
     let mut tmpl = Template::from("<<<a>>> + <<<b>>> = <<<c>>>".to_string());
-    tmpl.insert_param("a".to_string(), "1".to_string());
-    tmpl.insert_param("b".to_string(), "2".to_string());
-    tmpl.insert_param("c".to_string(), "3".to_string());
+
+    tmpl! {
+        // tmpl, // Template named tmpl can be omitted
+        a = "1",
+        b = "2",
+        c = "3",
+    };
+
     assert_eq!(tmpl.expand().unwrap(), "1 + 2 = 3");
 }
 
@@ -31,15 +38,12 @@ fn impl_blocks() {
         .to_string(),
     );
 
-    let arms = tmpl.add_impl("arms".to_string());
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "my".to_string(),
-    )]));
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "you".to_string(),
-    )]));
+    tmpl! {
+        arms {
+            crate_name = "my",
+            crate_name = "you",
+        }
+    }
 
     let expanded = tmpl.expand().unwrap();
     assert!(expanded.contains(r#""my" => Some(my::exec(data, params).await)"#));
@@ -80,7 +84,9 @@ visible end
         .to_string(),
     );
 
-    tmpl.insert_param("debug".to_string(), "".to_string());
+    tmpl! {
+        debug = true,
+    }
 
     let expanded = tmpl.expand().unwrap();
     assert!(expanded.contains("visible line"));
@@ -104,11 +110,11 @@ fn display_block_inside_impl_area_hidden_by_default() {
         .to_string(),
     );
 
-    let arms = tmpl.add_impl("arms".to_string());
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "my".to_string(),
-    )]));
+    tmpl! {
+        arms {
+            crate_name = "my"
+        }
+    }
 
     let expanded = tmpl.expand().unwrap();
     assert!(expanded.contains(r#"my => exec"#));
@@ -131,18 +137,13 @@ fn display_block_inside_impl_area_shown_by_global_param() {
         .to_string(),
     );
 
-    // Enable via global param — shows for ALL arms
-    tmpl.insert_param("extra".to_string(), "".to_string());
-
-    let arms = tmpl.add_impl("arms".to_string());
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "my".to_string(),
-    )]));
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "you".to_string(),
-    )]));
+    tmpl! {
+        extra = true,
+        arms {
+            crate_name = "my",
+            crate_name = "you"
+        }
+    }
 
     let expanded = tmpl.expand().unwrap();
     assert!(expanded.contains(r#"my => exec"#));
@@ -167,17 +168,15 @@ fn display_block_inside_impl_area_shown_by_arm_param() {
         .to_string(),
     );
 
-    let arms = tmpl.add_impl("arms".to_string());
-    // Arm 1: no "extra" → hidden
-    arms.push(HashMap::from([(
-        "crate_name".to_string(),
-        "my".to_string(),
-    )]));
-    // Arm 2: has "extra" → shown for this arm only
-    arms.push(HashMap::from([
-        ("crate_name".to_string(), "you".to_string()),
-        ("extra".to_string(), "".to_string()),
-    ]));
+    tmpl! {
+        arms {
+            crate_name = "my",
+            {
+                crate_name = "you",
+                extra = true
+            }
+        }
+    }
 
     let expanded = tmpl.expand().unwrap();
     assert!(expanded.contains(r#"my => exec"#));

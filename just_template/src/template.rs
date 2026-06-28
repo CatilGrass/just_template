@@ -1,9 +1,18 @@
 use std::collections::HashMap;
 
+/// Template struct, used to represent a template composed of a template string and parameters.
+///
+/// # Fields
+/// - `template_str` - Template string containing placeholders.
+/// - `params` - Normal parameters, key-value mappings.
+/// - `impl_params` - Implementation block parameters, where each implementation block name corresponds to a list of parameter maps (each parameter map is a key-value mapping).
 #[derive(Default, Clone)]
 pub struct Template {
+    /// Template string containing placeholders such as `{{param_name}}`.
     pub(crate) template_str: String,
+    /// Normal parameters, keyed by parameter name with values as parameter values.
     pub(crate) params: HashMap<String, String>,
+    /// Implementation block parameters, keyed by implementation block name with values as a list of parameter maps.
     pub(crate) impl_params: HashMap<String, Vec<HashMap<String, String>>>,
 }
 

@@ -10,4 +10,5 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/catilgrass/just_template"
 
 [dependencies]
+just_template_macros.workspace = true
 just_fmt = "0.1.2"

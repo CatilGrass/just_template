@@ -1,4 +1,5 @@
 [workspace]
+resolver = "3"
 members = [
     "just_template",
     "just_template_macros",
@@ -9,3 +10,7 @@ version = "0.2.0"
 description = "A tool for code gen via templatese"
 authors = ["Weicao-CatilGrass <catil_grass@qq.com>"]
 edition = "2024"
+
+[workspace.dependencies]
+just_template = { path = "just_template" }
+just_template_macros = { path = "just_template_macros" }

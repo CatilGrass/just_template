@@ -4,6 +4,14 @@ version.workspace = true
 description.workspace = true
 authors.workspace = true
 edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+readme = "README.md"
+documentation = "https://docs.rs/just_template_macros"
 
 [lib]
 proc-macro = true

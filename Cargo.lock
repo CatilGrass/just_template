@@ -13,12 +13,23 @@ name = "just_template"
 version = "0.2.0"
 dependencies = [
  "just_fmt",
- "just_template_macros",
+ "just_template_macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "just_template_macros"
 version = "0.2.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "just_template_macros"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1471eb68722ecefeb71debdde2859e8725341f171d3f42b3a98a0862ad19416e"
 dependencies = [
  "proc-macro2",
  "quote",

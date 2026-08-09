@@ -162,38 +162,57 @@ fn apply_impls(
 
 /// Process display blocks (`??? >>> name` / `??? <<<`).
 ///
-/// If `params` contains a key matching the block name, the block content is
-/// included (with markers removed). Otherwise the entire block is omitted.
+/// Blocks may be nested. If `params` contains a key matching the block name,
+/// the block body is included, with markers removed and nested blocks resolved
+/// recursively (each nested block is gated by its own param). Otherwise the
+/// entire block subtree is omitted.
 fn apply_display_blocks(params: &HashMap<String, String>, content: String) -> String {
-    let mut result = String::new();
     let lines: Vec<&str> = content.split("\n").collect();
+    let mut result = String::new();
     let mut i = 0;
     let mut first = true;
 
     while i < lines.len() {
-        let line = lines[i];
-        let trimmed = line.trim();
+        let trimmed = lines[i].trim();
 
         if trimmed.starts_with(DISPLAY_BLOCK_BEGIN) {
             let block_name = trimmed.trim_start_matches(DISPLAY_BLOCK_BEGIN).trim();
             let show = params.contains_key(block_name);
             i += 1;
 
-            while i < lines.len() && !lines[i].trim().starts_with(DISPLAY_BLOCK_END) {
-                if show {
+            // Collect the block body, tracking nesting depth so that an inner
+            // block's `??? <<<` does not close its parent block.
+            let mut depth = 1;
+            let mut body: Vec<&str> = Vec::new();
+            while i < lines.len() && depth > 0 {
+                let line_trimmed = lines[i].trim();
+                if line_trimmed.starts_with(DISPLAY_BLOCK_BEGIN) {
+                    depth += 1;
+                } else if line_trimmed.starts_with(DISPLAY_BLOCK_END) {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                body.push(lines[i]);
+                i += 1;
+            }
+
+            if show {
+                let child = apply_display_blocks(params, body.join("\n"));
+                if !child.is_empty() {
                     if !first {
                         result += "\n";
                     }
-                    result += lines[i];
+                    result += &child;
                     first = false;
                 }
-                i += 1;
             }
         } else if !trimmed.starts_with(DISPLAY_BLOCK_END) {
             if !first {
                 result += "\n";
             }
-            result += line;
+            result += lines[i];
             first = false;
         }
 

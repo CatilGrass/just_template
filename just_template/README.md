@@ -1,1 +1,1 @@
-D:/just_template/README.md
+../README.md

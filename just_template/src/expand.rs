@@ -16,6 +16,20 @@ const PARAM_BEGIN: &str = "<<<";
 const PARAM_BEND: &str = ">>>";
 
 impl Template {
+    /// Expand the template by applying impl areas, display blocks, and parameters.
+    ///
+    /// The expansion pipeline processes the template in the following order:
+    /// 1. Extract all ImplArea blocks ([`IMPL_AREA_BEGIN`]/[`IMPL_AREA_END`]) from the
+    ///    template text into a separate map.
+    /// 2. Apply user-provided implementation parameters to each ImplArea block,
+    ///    then substitute the resulting code into the template at [`IMPL_BEGIN`] markers.
+    /// 3. Resolve display blocks ([`DISPLAY_BLOCK_BEGIN`]/[`DISPLAY_BLOCK_END`]) based
+    ///    on the global parameters; blocks whose names appear in the params are kept,
+    ///    otherwise they are removed.
+    /// 4. Substitute all global template parameters (`<<name>>`) with their values.
+    ///
+    /// Returns the fully expanded template string with surrounding whitespace trimmed,
+    /// or `None` if any phase fails (e.g., malformed block structure).
     pub fn expand(mut self) -> Option<String> {
         // Extract template text
         let expanded = std::mem::take(&mut self.template_str);

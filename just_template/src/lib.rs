@@ -1,4 +1,5 @@
 #![doc = include_str!("./lib.md")]
+#![deny(missing_docs)]
 
 mod expand;
 
@@ -13,7 +14,9 @@ pub use template::*;
 pub use just_template_macros::tmpl;
 
 #[cfg(test)]
+#[allow(missing_docs)]
 pub mod test_expand;
 
 #[cfg(test)]
+#[allow(missing_docs)]
 pub mod test_macros;

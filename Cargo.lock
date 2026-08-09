@@ -10,15 +10,17 @@ checksum = "5454cda0d57db59778608d7a47bff5b16c6705598265869fb052b657f66cf05e"
 
 [[package]]
 name = "just_template"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "just_fmt",
- "just_template_macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "just_template_macros 0.2.0",
 ]
 
 [[package]]
 name = "just_template_macros"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1471eb68722ecefeb71debdde2859e8725341f171d3f42b3a98a0862ad19416e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -27,9 +29,7 @@ dependencies = [
 
 [[package]]
 name = "just_template_macros"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1471eb68722ecefeb71debdde2859e8725341f171d3f42b3a98a0862ad19416e"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 description = "A tool for code gen via templatese"
 authors = ["Weicao-CatilGrass <catil_grass@qq.com>"]
 edition = "2024"
